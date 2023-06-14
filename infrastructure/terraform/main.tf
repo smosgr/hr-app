@@ -61,7 +61,7 @@ resource "azurerm_network_security_rule" "net-sec-rule" {
   network_security_group_name = azurerm_network_security_group.hr-app-nsg.name
 }
 
-resource "azurerm_subnet_network_security_group_association" "mtc-sga" {
+resource "azurerm_subnet_network_security_group_association" "hr-app-sga" {
   subnet_id                 = azurerm_subnet.hr-app-subnet.id
   network_security_group_id = azurerm_network_security_group.hr-app-nsg.id
 }
@@ -77,8 +77,8 @@ resource "azurerm_public_ip" "hr-app-publicip" {
   }
 }
 
-resource "azurerm_network_interface" "mtc-nic" {
-  name                = "mtc-nic"
+resource "azurerm_network_interface" "hr-app-vm372_z1" {
+  name                = "hr-app-nic"
   location            = azurerm_resource_group.shawbrook-interview.location
   resource_group_name = azurerm_resource_group.shawbrook-interview.name
 
@@ -94,19 +94,19 @@ resource "azurerm_network_interface" "mtc-nic" {
   }
 }
 
-resource "azurerm_linux_virtual_machine" "mtc-vm" {
-  name                  = "mtc-vm"
+resource "azurerm_linux_virtual_machine" "hr-app-vm" {
+  name                  = "hr-app-vm"
   resource_group_name   = azurerm_resource_group.shawbrook-interview.name
   location              = azurerm_resource_group.shawbrook-interview.location
   size                  = "Standard_B1s"
   admin_username        = "adminuser"
-  network_interface_ids = [azurerm_network_interface.mtc-nic.id]
+  network_interface_ids = [azurerm_network_interface.hr-app-vm372_z1.id]
 
   custom_data = filebase64("customdata.tpl")
 
   admin_ssh_key {
     username   = "adminuser"
-    public_key = file("~/.ssh/mtcazurekey.pub")
+    public_key = file("~/.ssh/hr-app-vm_key.pub")
   }
 
   os_disk {
@@ -125,7 +125,7 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
     command = templatefile("${var.host_os}-ssh-script.tpl", {
       hostname = self.public_ip_address,
       user = "adminuser",
-      identityfile = "~/.ssh/mtcazurekey"
+      identityfile = "~/.ssh/hr-app-vm_key"
     })
     interpreter = var.host_os == "windows" ? ["Powershell", "-Command"] : ["bash", "-c"]
   }
@@ -135,11 +135,11 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
   }
 }
 
-data "azurerm_public_ip" "mtc-ip-data" {
-  name = azurerm_public_ip.mtc-ip.name
+data "azurerm_public_ip" "hr-app-ip-data" {
+  name = azurerm_public_ip.hr-app-publicip.name
   resource_group_name = azurerm_resource_group.shawbrook-interview.name
 }
 
 output "public_ip_address" {
-  value = "${azurerm_linux_virtual_machine.mtc-vm.name}: ${data.azurerm_public_ip.mtc-ip-data.ip_address}"
+  value = "${azurerm_linux_virtual_machine.hr-app-vm.name}: ${data.azurerm_public_ip.hr-app-ip-data.ip_address}"
 }
